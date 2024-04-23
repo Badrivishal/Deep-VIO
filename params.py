@@ -4,7 +4,7 @@ import torch
 class Parameters():
     def __init__(self):
 
-        self.device = device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+        self.device =torch.device('cpu')
 
         # Path to the dataset. Please modify this before running
         #TODO Update data directories
@@ -38,7 +38,7 @@ class Parameters():
 
         # Training settings
         self.epochs = 130
-        self.batch_size = 1
+        self.batch_size = 5
         self.pin_mem = True
         self.optim_lr = 1e-3
         self.optim_decay = 5e-6
