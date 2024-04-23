@@ -5,8 +5,8 @@ from dataloader import RandomNoiseDataset
 import torch
 
 def get_data_loaders(batch_size):
-    dataset = RandomNoiseDataset(num_samples=1000, seq_len=params.seq_len)
-    val_dataset = RandomNoiseDataset(num_samples=200, seq_len=params.seq_len)
+    dataset = RandomNoiseDataset(num_samples=100, seq_len=params.seq_len)
+    val_dataset = RandomNoiseDataset(num_samples=20, seq_len=params.seq_len)
     
     train_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
@@ -39,8 +39,8 @@ if __name__ == "__main__":
 
     for epoch in range(params.epochs):
         print('Epoch: {}'.format(epoch))
-        train_loss, train_loss_ang, train_loss = m_deepvio.train_model(train_dataloader, optimizer)
-        val_loss, val_loss_ang, val_loss = m_deepvio.validate_model(val_dataloader)
+        train_loss, train_loss_ang, train_trans_loss = m_deepvio.train_model(train_dataloader, optimizer)
+        val_loss, val_loss_ang, val_trans_loss = m_deepvio.validate_model(val_dataloader)
         scheduler.step()
         print('Train Loss: {:.3f}, Angle Loss: {:.4f}, Translation Loss: {:.3f}'.format(train_loss, train_loss_ang, train_loss))
 
