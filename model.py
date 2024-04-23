@@ -43,9 +43,9 @@ class ImageConvModel(nn.Module):
 class LSTMModel(nn.Module):
     def __init__(self):
         super(LSTMModel, self).__init__()
-        self.lstm1 = nn.LSTM(params.rnn_hidden_size, 256)
-        self.lstm2 = nn.LSTM(256, 256)
-        self.lstm3 = nn.LSTM(256, 256)
+        self.lstm1 = nn.LSTM(2887686, 16)
+        self.lstm2 = nn.LSTM(16, 16)
+        self.lstm3 = nn.LSTM(16, 16)
 
     def forward(self, x, prev_state=None):
         x, hc1 = self.lstm1(x, prev_state)
@@ -60,7 +60,7 @@ class DeepVIO(nn.Module):
         super(DeepVIO, self).__init__()
         self.imageModel = ImageConvModel()
         self.lstmModel = LSTMModel()
-        self.linear = nn.Linear(256, 7)
+        self.linear = nn.Linear(16, 7)
 
     
     def forward(self, x_images, x_imu, prev_state=None):
@@ -70,22 +70,31 @@ class DeepVIO(nn.Module):
         # Reshape for image model
         images_model_input = x_images.view(batch_size*seq_len, 1, params.img_h, params.img_w)
         x = self.imageModel(images_model_input)
-        x = x.view(batch_size, seq_len, 1, -1)
-        print(x.shape)
-        x = torch.concat([x, x_imu], axis=3)
+        x = x.view(batch_size, seq_len, -1)
+        # print(x.shape)
+        # Reorder the dimensions to [seq_len, batch_size, 1, -1]
+        x = x.permute(1, 0, 2)
+        x_imu = x_imu.permute(1, 0, 2)
+        # Reshape the tensor to [seq_len, batch_size, -1]
+        x = x.contiguous().view(seq_len, batch_size, -1)
+        # print(x.shape, x_imu.shape)
+
+        x = torch.concat([x, x_imu], axis=2)
 
         # RNN
         out, hc = self.lstmModel(x, prev_state)
-
+        # print(out.shape)
         pose = self.linear(out)
+        pose = pose.permute(1, 0, 2)
+        # print("pose", pose.shape)
+
         angles = pose[:, :, 3:]
         translation = pose[:, :, :3]
-
         return angles, translation, hc
     
     def get_loss(self, x_images, x_imu, y, prev_state=None):
         angles, translation, _ = self.forward(x_images, x_imu, prev_state)
-        
+        # print("angles", angles.shape, "translation", translation.shape, "y", y.shape)
         angle_loss = torch.nn.functional.mse_loss(angles, y[:,:,3:])
         translation_loss = torch.nn.functional.mse_loss(translation, y[:,:,:3])
         loss = params.angular_loss_weight * angle_loss + translation_loss
@@ -142,7 +151,8 @@ class DeepVIO(nn.Module):
             loss_trans_mean_val += translation_loss.item()
         loss_ang_mean_val /= len(data_loader)
         loss_trans_mean_val /= len(data_loader)
-        return loss_ang_mean_val, loss_trans_mean_val
+        loss_mean_val = loss_ang_mean_val + loss_trans_mean_val
+        return loss_mean_val, loss_ang_mean_val, loss_trans_mean_val
     
     def __str__(self):
         return str(self.imageModel) + '\n' + str(self.lstmModel)
