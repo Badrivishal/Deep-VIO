@@ -43,10 +43,15 @@ class ImageConvModel(nn.Module):
 class LSTMModel(nn.Module):
     def __init__(self):
         super(LSTMModel, self).__init__()
-        self.model = nn.Module()
-        self.model.add_module('0', nn.LSTM(params.rnn_hidden_size, 256, 256))
-        self.model.add_module('1', nn.LSTM(params.rnn_hidden_size, 256, 256))
-        self.model.add_module('2', nn.LSTM(params.rnn_hidden_size, 256, 256))
+        self.lstm1 = nn.LSTM(params.rnn_hidden_size, 256)
+        self.lstm2 = nn.LSTM(256, 256)
+        self.lstm3 = nn.LSTM(256, 256)
+
+    def forward(self, x, prev_state=None):
+        x, hc1 = self.lstm1(x, prev_state)
+        x, hc2 = self.lstm2(x, hc1)
+        x, hc3 = self.lstm3(x, hc2)
+        return x, hc3
 
 
 
@@ -65,9 +70,9 @@ class DeepVIO(nn.Module):
         # Reshape for image model
         images_model_input = x_images.view(batch_size*seq_len, 1, params.img_h, params.img_w)
         x = self.imageModel(images_model_input)
-        x = x.view(batch_size, seq_len, -1)
+        x = x.view(batch_size, seq_len, 1, -1)
         print(x.shape)
-        x = torch.concat([x, x_imu], axis=1)
+        x = torch.concat([x, x_imu], axis=3)
 
         # RNN
         out, hc = self.lstmModel(x, prev_state)

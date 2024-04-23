@@ -5,8 +5,8 @@ from dataloader import RandomNoiseDataset
 import torch
 
 def get_data_loaders(batch_size):
-    dataset = RandomNoiseDataset(num_samples=1000, seq_len=5)
-    val_dataset = RandomNoiseDataset(num_samples=200, seq_len=5)
+    dataset = RandomNoiseDataset(num_samples=1000, seq_len=params.seq_len)
+    val_dataset = RandomNoiseDataset(num_samples=200, seq_len=params.seq_len)
     
     train_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)

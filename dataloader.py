@@ -12,8 +12,8 @@ class RandomNoiseDataset(Dataset):
 
     def __getitem__(self, idx):
         x_image = torch.randn(self.seq_len, 1, 960, 752)
-        x_imu = torch.randn(self.seq_len, 6, 1)
-        y = torch.randn(self.seq_len, 7, 1)
+        x_imu = torch.randn(self.seq_len, 1, 6)
+        y = torch.randn(self.seq_len, 1, 7)
         return x_image, x_imu, y
 
 if __name__ == "__main__":
