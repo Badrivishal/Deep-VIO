@@ -4,7 +4,11 @@ import torch
 class Parameters():
     def __init__(self):
 
-        self.device =torch.device('cpu')
+        # if torch.backends.mps.is_available():
+        #     self.device = torch.device('mps')
+        # else:
+        #     self.device =torch.device('cpu')
+        self.device = torch.device('cpu')
 
         # Path to the dataset. Please modify this before running
         #TODO Update data directories

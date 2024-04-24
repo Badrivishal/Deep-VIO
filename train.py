@@ -1,22 +1,57 @@
 from model import DeepVIO
 from params import params
 from torch.utils.data import DataLoader
-from dataloader import RandomNoiseDataset
+from dataloader import convert_to_tensor
 import torch
+import pandas as pd
 
-def get_data_loaders(batch_size):
-    dataset = RandomNoiseDataset(num_samples=100, seq_len=params.seq_len)
-    val_dataset = RandomNoiseDataset(num_samples=20, seq_len=params.seq_len)
-    
-    train_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
-    return train_dataloader, val_dataloader
+def get_data_loaders(df_meta, image_folder, seq_len, batch_size):
+
+    split_idx = int(0.8 * df_meta.shape[0])
+
+    df_train = df_meta.iloc[:split_idx]
+    df_valid = df_meta.iloc[split_idx:]
+    print('train set:', df_train.shape[0])
+    print('valid set:', df_valid.shape[0])
+
+    train_dataset = convert_to_tensor(df=df_train,
+                                      file_path=image_folder,
+                                      seq_len=seq_len)
+    valid_dataset = convert_to_tensor(df=df_valid,
+                                      file_path=image_folder,
+                                      seq_len=seq_len)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
+    valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
+
+
+    # dataset = RandomNoiseDataset(num_samples=100, seq_len=params.seq_len)
+    # val_dataset = RandomNoiseDataset(num_samples=20, seq_len=params.seq_len)
+    #
+    # train_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    # val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+
+    return train_loader, valid_loader
 
 
 if __name__ == "__main__":
+
     torch.cuda.empty_cache()
 
-    train_dataloader, val_dataloader = get_data_loaders(params.batch_size)
+    # prepare meta data
+    df_meta = pd.read_csv('dataset/mh_01.csv')
+    float64_cols = list(df_meta.select_dtypes(include='float64'))
+    df_meta[float64_cols] = df_meta[float64_cols].astype('float32')
+
+    image_folder = 'dataset/mh_01/'
+    # for test
+    seq_len = 3
+    batch_size = 4
+
+    train_dataloader, val_dataloader = get_data_loaders(df_meta=df_meta,
+                                                        image_folder=image_folder,
+                                                        seq_len=seq_len,
+                                                        batch_size=batch_size)
 
 
     m_deepvio = DeepVIO()
