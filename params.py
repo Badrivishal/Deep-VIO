@@ -8,7 +8,12 @@ class Parameters():
         #     self.device = torch.device('mps')
         # else:
         #     self.device =torch.device('cpu')
-        self.device = torch.device('cpu')
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+            print("Using GPU")
+        else:
+            self.device = torch.device('cpu')
+            print("Using CPU")
 
         # Path to the dataset. Please modify this before running
         #TODO Update data directories
@@ -34,18 +39,18 @@ class Parameters():
         # Neural network settings
         self.rnn_input_size = 90246
         self.rnn_hidden_size = 256
-        self.conv_dropout = (0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.5)
+        self.conv_dropout = (0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.5)
         self.rnn_dropout_out = 0.2
         self.rnn_dropout_between = 0.2 
         self.batch_norm = True
-        self.angular_loss_weight = 100
+        self.angular_loss_weight = 1
 
         # Training settings
         self.epochs = 130
         self.batch_size = 5
         self.pin_mem = True
-        self.optim_lr = 1e-3
-        self.optim_decay = 5e-6
+        self.optim_lr = 1e-4
+        self.optim_decay = 5e-3
         self.optim_lr_decay_factor = 0.1
         self.optim_lr_step = 60
 
@@ -54,15 +59,17 @@ class Parameters():
         self.resume_t_or_v = '.latest'
         
         # Paths to save and load the model
-        self.experiment_name = 'experiment_name'
+        self.experiment_name = 'experiment_colab_new'
         self.save_path = 'experiments/{}'.format(self.experiment_name)
 
         # self.name = 't{}_v{}_im{}x{}_s{}_b{}'.format(''.join(self.train_video), ''.join(self.test_video), self.img_h, self.img_w, self.seq_len, self.batch_size)
         # self.name += '_flip' if self.is_hflip else ''
         self.name = "DeepVIO"
 
-        self.load_model_path = '{}/models/{}.model{}'.format(self.save_path, self.name, self.resume_t_or_v)
-        self.load_optimizer_path = '{}/models/{}.optimizer{}'.format(self.save_path, self.name, self.resume_t_or_v)
+        # self.load_model_path = '{}/models/{}.model{}'.format(self.save_path, self.name, self.resume_t_or_v)
+        self.save_model_path = '{}/models/{}'.format(self.save_path, self.name)
+        self.load_model_path = "D:/1st Sem WPI/Deep Learning/Final Project/Working model/DeepVIO.model.latest"
+        self.load_optimizer_path = 'D:/1st Sem WPI/Deep Learning/Final Project/Working model/DeepVIO.optimizer.latest'
         self.record_path = '{}/records/{}.txt'.format(self.save_path, self.name)
         self.save_model_path = '{}/models/{}.model'.format(self.save_path, self.name)
         self.save_optimzer_path = '{}/models/{}.optimizer'.format(self.save_path, self.name)

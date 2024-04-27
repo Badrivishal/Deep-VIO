@@ -25,7 +25,7 @@ class EurocDataset(Dataset):
     def __init__(self, file_path, df_metadata, seq_len, transform=None):
         self.file_path = file_path
         self.df_metadata = df_metadata
-        self.trasform = transform
+        self.transform = transform
         self.seq_len = seq_len
 
     def __len__(self):
@@ -52,8 +52,8 @@ class EurocDataset(Dataset):
         image_cam0 = Image.open(self.file_path + 'cam0/' + file_name_cam0).convert("L")
         image_cam1 = Image.open(self.file_path + 'cam1/' + file_name_cam1).convert("L")
 
-        tensor_cam0 = self.trasform(image_cam0)
-        tensor_cam1 = self.trasform(image_cam1)
+        tensor_cam0 = self.transform(image_cam0)
+        tensor_cam1 = self.transform(image_cam1)
 
         concatenated_tensor = torch.cat((tensor_cam0, tensor_cam1), dim=1)
         # print('concatenated tensor shape:', concatenated_tensor.shape)

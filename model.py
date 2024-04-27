@@ -23,29 +23,41 @@ class ImageConvModel(nn.Module):
     def __init__(self):
         super(ImageConvModel, self).__init__()
         self.model = nn.Sequential()
-        self.model.add_module('0', nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)))
-        self.model.add_module('1', nn.ReLU(inplace=True))
-        self.model.add_module('2', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
-        self.model.add_module('3', nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)))
-        self.model.add_module('4', nn.ReLU(inplace=True))
-        self.model.add_module('5', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
-        self.model.add_module('6', nn.Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)))
-        self.model.add_module('7', nn.ReLU(inplace=True))
-        self.model.add_module('8', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
-        self.model.add_module('9', nn.Flatten())
+        self.model.add_module('0', nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3)))
+        self.model.add_module('1', nn.BatchNorm2d(64))  # Add Batch Normalization
+        self.model.add_module('2', nn.ReLU(inplace=True))
+        self.model.add_module('3', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
+        self.model.add_module('4', nn.Conv2d(64, 64, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2)))
+        self.model.add_module('5', nn.BatchNorm2d(64))  # Add Batch Normalization
+        self.model.add_module('6', nn.ReLU(inplace=True))
+        self.model.add_module('7', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
+        self.model.add_module('8', nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)))
+        self.model.add_module('9', nn.BatchNorm2d(128))  # Add Batch Normalization
+        self.model.add_module('10', nn.ReLU(inplace=True))
+        self.model.add_module('11', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
+        self.model.add_module('12', nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)))
+        self.model.add_module('13', nn.BatchNorm2d(128))  # Add Batch Normalization
+        self.model.add_module('14', nn.ReLU(inplace=True))
+        self.model.add_module('15', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
+        self.model.add_module('16', nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, ), padding=(1, 1)))
+        self.model.add_module('17', nn.BatchNorm2d(128))  # Add Batch Normalization
+        self.model.add_module('18', nn.ReLU(inplace=True))
+        self.model.add_module('19', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
+        self.model.add_module('20', nn.Flatten())
 
     def forward(self, x):
         return self.model(x)
     
     def __str__(self):
         return str(self.model)
-    
+
 class LSTMModel(nn.Module):
     def __init__(self):
         super(LSTMModel, self).__init__()
-        self.lstm1 = nn.LSTM(2887686, 16)
+        self.lstm1 = nn.LSTM(74112, 16)
         self.lstm2 = nn.LSTM(16, 16)
         self.lstm3 = nn.LSTM(16, 16)
+        #increase hidden layer shapes
 
     def forward(self, x, prev_state=None):
         x, hc1 = self.lstm1(x, prev_state)
@@ -54,13 +66,22 @@ class LSTMModel(nn.Module):
         return x, hc3
 
 
+class LSTMSingleModel(nn.Module):
+    def __init__(self):
+        super(LSTMSingleModel, self).__init__()
+        self.lstm1 = nn.LSTM(256, 100, num_layers=3)
+
+    def forward(self, x, prev_state=None):
+        x, hc1 = self.lstm1(x, prev_state)
+        return x, hc1
 
 class DeepVIO(nn.Module):
     def __init__(self):
         super(DeepVIO, self).__init__()
         self.imageModel = ImageConvModel()
-        self.lstmModel = LSTMModel()
-        self.linear = nn.Linear(16, 7)
+        self.linear1 = nn.Linear(1152, 250)
+        self.lstmModel = LSTMSingleModel()
+        self.linear2 = nn.Linear(100, 7)
 
     
     def forward(self, x_images, x_imu, prev_state=None):
@@ -70,6 +91,7 @@ class DeepVIO(nn.Module):
         # Reshape for image model
         images_model_input = x_images.view(batch_size*seq_len, 1, params.img_h, params.img_w)
         x = self.imageModel(images_model_input)
+        x = self.linear1(x)
         x = x.view(batch_size, seq_len, -1)
         # print(x.shape)
         # Reorder the dimensions to [seq_len, batch_size, 1, -1]
@@ -80,11 +102,11 @@ class DeepVIO(nn.Module):
         # print(x.shape, x_imu.shape)
 
         x = torch.concat([x, x_imu], axis=2)
-
+        # print(x.shape)
         # RNN
         out, hc = self.lstmModel(x, prev_state)
         # print(out.shape)
-        pose = self.linear(out)
+        pose = self.linear2(out)
         pose = pose.permute(1, 0, 2)
         # print("pose", pose.shape)
 
@@ -95,6 +117,7 @@ class DeepVIO(nn.Module):
     def get_loss(self, x_images, x_imu, y, prev_state=None):
         angles, translation, _ = self.forward(x_images, x_imu, prev_state)
         # print("angles", angles.shape, "translation", translation.shape, "y", y.shape)
+        y = y.to(params.device)
         angle_loss = torch.nn.functional.mse_loss(angles, y[:,:,3:])
         translation_loss = torch.nn.functional.mse_loss(translation, y[:,:,:3])
         loss = params.angular_loss_weight * angle_loss + translation_loss
@@ -102,6 +125,7 @@ class DeepVIO(nn.Module):
 
     def step(self, x_images, x_imu, y, optimizer, prev_state=None):
         optimizer.zero_grad()
+        #TODO Implement gradient clip
         loss, angle_loss, translation_loss = self.get_loss(x_images, x_imu, y, prev_state)
         loss.backward()
         optimizer.step()
@@ -117,10 +141,13 @@ class DeepVIO(nn.Module):
         for x_images, x_imu, y in tqdm(data_loader):
             x_images = x_images.to(params.device)
             x_imu = x_imu.to(params.device)
+            y = y.to(params.device)
             loss, angle_loss, translation_loss = self.step(x_images, x_imu, y, optimizer)
             losses['total'].append(loss.item())
             losses['angle'].append(angle_loss.item())
             losses['translation'].append(translation_loss.item())
+            loss_ang_mean_train += angle_loss.item()
+            loss_trans_mean_train += translation_loss.item()
             iter_num += 1
             if iter_num % 20 == 0:
                 message = f'Iteration: {iter_num}, Loss: {loss:.3f}, angle: {100*angle_loss:.4f}, trans: {translation_loss:.3f}'
@@ -128,9 +155,11 @@ class DeepVIO(nn.Module):
                 f.write(message+'\n') 
                 print(message)
                 f.close()
+                
         loss_ang_mean_train /= len(data_loader)
         loss_trans_mean_train /= len(data_loader)
         loss_mean_train = loss_ang_mean_train + loss_trans_mean_train
+        torch.cuda.empty_cache()
 
         return loss_mean_train, loss_ang_mean_train, loss_trans_mean_train
 
@@ -143,6 +172,7 @@ class DeepVIO(nn.Module):
         for x_images, x_imu, y in tqdm(data_loader):
             x_images = x_images.to(params.device)
             x_imu = x_imu.to(params.device)
+            y = y.to(params.device)
             loss, angle_loss, translation_loss = self.get_loss(x_images, x_imu, y)
             losses['total'].append(loss.item())
             losses['angle'].append(angle_loss.item())
@@ -152,6 +182,7 @@ class DeepVIO(nn.Module):
         loss_ang_mean_val /= len(data_loader)
         loss_trans_mean_val /= len(data_loader)
         loss_mean_val = loss_ang_mean_val + loss_trans_mean_val
+        torch.cuda.empty_cache()
         return loss_mean_val, loss_ang_mean_val, loss_trans_mean_val
     
     def __str__(self):

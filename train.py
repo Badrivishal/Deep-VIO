@@ -21,7 +21,7 @@ def get_data_loaders(df_meta, image_folder, seq_len, batch_size):
                                       file_path=image_folder,
                                       seq_len=seq_len)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
 
 
@@ -45,8 +45,8 @@ if __name__ == "__main__":
 
     image_folder = 'dataset/mh_01/'
     # for test
-    seq_len = 3
-    batch_size = 4
+    seq_len = 10
+    batch_size = 6
 
     train_dataloader, val_dataloader = get_data_loaders(df_meta=df_meta,
                                                         image_folder=image_folder,
@@ -77,10 +77,16 @@ if __name__ == "__main__":
         train_loss, train_loss_ang, train_trans_loss = m_deepvio.train_model(train_dataloader, optimizer)
         val_loss, val_loss_ang, val_trans_loss = m_deepvio.validate_model(val_dataloader)
         scheduler.step()
-        print('Train Loss: {:.3f}, Angle Loss: {:.4f}, Translation Loss: {:.3f}'.format(train_loss, train_loss_ang, train_loss))
+        message = "Epoch: {}, Train Loss: {:.3f}, Angle Loss: {:.4f}, Translation Loss: {:.3f}, Validation Loss: {:.3f}, Angle Loss: {:.4f}, Translation Loss: {:.3f}".format(epoch, train_loss, train_loss_ang, train_trans_loss, val_loss, val_loss_ang, val_trans_loss)
+        f = open(params.record_path, 'a')
+        f.write(message+'\n') 
+        print(message)
+        f.close()
+        # print('Train Loss: {:.3f}, Angle Loss: {:.4f}, Translation Loss: {:.3f}'.format(train_loss, train_loss_ang, train_loss))
+        # print("Validation Loss: {:.3f}, Angle Loss: {:.4f}, Translation Loss: {:.3f}".format(val_loss, val_loss_ang, val_loss))
 
         print("Saving model...")
-        torch.save(m_deepvio.state_dict(), params.load_model_path, _use_new_zipfile_serialization=True)
-        torch.save(optimizer.state_dict(), params.load_optimizer_path, _use_new_zipfile_serialization=True)
+        torch.save(m_deepvio.state_dict(), params.save_model_path + "_epoch_{}".format(epoch) + ".model.pth")
+        torch.save(optimizer.state_dict(), params.save_model_path + "_epoch_{}".format(epoch) + ".optimizer.pth")
 
 
