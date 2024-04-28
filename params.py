@@ -31,7 +31,7 @@ class Parameters():
 
         # Data Preprocessing
         self.img_w = 752   # 
-        self.img_h = 960   # 
+        self.img_h = 480   # 
 
         # Data Augmentation (horizontal flip)
         self.is_hflip = False
@@ -43,7 +43,7 @@ class Parameters():
         self.rnn_dropout_out = 0.2
         self.rnn_dropout_between = 0.2 
         self.batch_norm = True
-        self.angular_loss_weight = 1
+        self.angular_loss_weight = 0.1
 
         # Training settings
         self.epochs = 130
@@ -59,7 +59,7 @@ class Parameters():
         self.resume_t_or_v = '.latest'
         
         # Paths to save and load the model
-        self.experiment_name = 'experiment_colab_new'
+        self.experiment_name = 'experiment_small_local'
         self.save_path = 'experiments/{}'.format(self.experiment_name)
 
         # self.name = 't{}_v{}_im{}x{}_s{}_b{}'.format(''.join(self.train_video), ''.join(self.test_video), self.img_h, self.img_w, self.seq_len, self.batch_size)

@@ -55,7 +55,7 @@ class EurocDataset(Dataset):
         tensor_cam0 = self.transform(image_cam0)
         tensor_cam1 = self.transform(image_cam1)
 
-        concatenated_tensor = torch.cat((tensor_cam0, tensor_cam1), dim=1)
+        concatenated_tensor = torch.cat((tensor_cam0, tensor_cam1), dim=0)
         # print('concatenated tensor shape:', concatenated_tensor.shape)
 
         return concatenated_tensor

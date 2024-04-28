@@ -19,30 +19,39 @@ class imageModel(nn.Module):
     def __str__(self):
         return str(self.model)
     
+class convBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, max_pool=False, dropout_rate=0.4):
+        super(convBlock, self).__init__()
+        self.is_max_pool = max_pool
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+        self.dropout = nn.Dropout2d(dropout_rate)
+
+    
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        if self.is_max_pool:
+            x = self.maxpool(x)
+        x = self.dropout(x)
+        return x
+    
 class ImageConvModel(nn.Module):
     def __init__(self):
         super(ImageConvModel, self).__init__()
         self.model = nn.Sequential()
-        self.model.add_module('0', nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3)))
-        self.model.add_module('1', nn.BatchNorm2d(64))  # Add Batch Normalization
-        self.model.add_module('2', nn.ReLU(inplace=True))
-        self.model.add_module('3', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
-        self.model.add_module('4', nn.Conv2d(64, 64, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2)))
-        self.model.add_module('5', nn.BatchNorm2d(64))  # Add Batch Normalization
-        self.model.add_module('6', nn.ReLU(inplace=True))
-        self.model.add_module('7', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
-        self.model.add_module('8', nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)))
-        self.model.add_module('9', nn.BatchNorm2d(128))  # Add Batch Normalization
-        self.model.add_module('10', nn.ReLU(inplace=True))
-        self.model.add_module('11', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
-        self.model.add_module('12', nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)))
-        self.model.add_module('13', nn.BatchNorm2d(128))  # Add Batch Normalization
-        self.model.add_module('14', nn.ReLU(inplace=True))
-        self.model.add_module('15', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
-        self.model.add_module('16', nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, ), padding=(1, 1)))
-        self.model.add_module('17', nn.BatchNorm2d(128))  # Add Batch Normalization
-        self.model.add_module('18', nn.ReLU(inplace=True))
-        self.model.add_module('19', nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False))
+        self.model.add_module('1', convBlock(in_channels=2, out_channels=16, kernel_size=7, stride=2, padding=3, dropout_rate=0.2))
+        self.model.add_module('2', convBlock(in_channels=16, out_channels=32, kernel_size=5, stride=2, padding=2, dropout_rate=0.2))
+        self.model.add_module('3', convBlock(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1, dropout_rate=0.2))
+        self.model.add_module('4', convBlock(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1, dropout_rate=0.2))
+        self.model.add_module('5', convBlock(in_channels=64, out_channels=128, kernel_size=3, stride=2, padding=1, dropout_rate=0.2))
+        self.model.add_module('6', convBlock(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1, dropout_rate=0.2))
+        self.model.add_module('7', convBlock(in_channels=128, out_channels=128, kernel_size=3, stride=2, padding=1, dropout_rate=0.2))
+        self.model.add_module('8', convBlock(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1, dropout_rate=0.2))
+        self.model.add_module('9', convBlock(in_channels=128, out_channels=128, kernel_size=3, stride=2, padding=1, dropout_rate=0.2))
         self.model.add_module('20', nn.Flatten())
 
     def forward(self, x):
@@ -79,7 +88,7 @@ class DeepVIO(nn.Module):
     def __init__(self):
         super(DeepVIO, self).__init__()
         self.imageModel = ImageConvModel()
-        self.linear1 = nn.Linear(1152, 250)
+        self.linear1 = nn.Linear(46080, 250)
         self.lstmModel = LSTMSingleModel()
         self.linear2 = nn.Linear(100, 7)
 
@@ -89,7 +98,7 @@ class DeepVIO(nn.Module):
         seq_len = x_images.size(1)
 
         # Reshape for image model
-        images_model_input = x_images.view(batch_size*seq_len, 1, params.img_h, params.img_w)
+        images_model_input = x_images.view(batch_size*seq_len, 2, params.img_h, params.img_w)
         x = self.imageModel(images_model_input)
         x = self.linear1(x)
         x = x.view(batch_size, seq_len, -1)

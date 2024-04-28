@@ -21,7 +21,7 @@ def get_data_loaders_split(df_meta, image_folder, seq_len, batch_size):
                                       file_path=image_folder,
                                       seq_len=seq_len)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
     valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
 
     return train_loader, valid_loader
@@ -32,7 +32,7 @@ def get_data_loader_whole_set(df_meta, image_folder, seq_len, batch_size):
                                 file_path=image_folder,
                                 seq_len=seq_len)
 
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
     return loader
 
@@ -41,8 +41,8 @@ if __name__ == "__main__":
 
     torch.cuda.empty_cache()
 
-    seq_len = 10
-    batch_size = 6
+    seq_len = 4
+    batch_size = 2
 
     # prepare meta data -- TRAIN SET: MH01
     df_meta_train = pd.read_csv('dataset/mh_01.csv')
