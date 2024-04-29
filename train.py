@@ -32,7 +32,7 @@ def get_data_loader_whole_set(df_meta, image_folder, seq_len, batch_size):
                                 file_path=image_folder,
                                 seq_len=seq_len)
 
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
     return loader
 
@@ -41,8 +41,8 @@ if __name__ == "__main__":
 
     torch.cuda.empty_cache()
 
-    seq_len = 4
-    batch_size = 2
+    seq_len = 6
+    batch_size = 4
 
     # prepare meta data -- TRAIN SET: MH01
     df_meta_train = pd.read_csv('dataset/mh_01.csv')
@@ -56,10 +56,10 @@ if __name__ == "__main__":
                                                  batch_size=batch_size)
 
     # prepare meta data -- VALIDATION SET: MH02
-    df_meta_valid = pd.read_csv('dataset/mh_02.csv')
+    df_meta_valid = pd.read_csv('dataset/mh_01.csv')
     float64_cols = list(df_meta_valid.select_dtypes(include='float64'))
     df_meta_valid[float64_cols] = df_meta_valid[float64_cols].astype('float32')
-    valid_image_folder = 'dataset/mh_02/'
+    valid_image_folder = 'dataset/mh_01/'
 
     valid_dataloader = get_data_loader_whole_set(df_meta=df_meta_valid,
                                                  image_folder=valid_image_folder,
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     for epoch in range(params.epochs):
         print('Epoch: {}'.format(epoch))
         train_loss, train_loss_ang, train_trans_loss = m_deepvio.train_model(train_dataloader, optimizer)
-        val_loss, val_loss_ang, val_trans_loss = m_deepvio.validate_model(valid_dataloader)
+        val_loss, val_loss_ang, val_trans_loss = m_deepvio.validate_model(train_dataloader)
         scheduler.step()
         message = "Epoch: {}, Train Loss: {:.3f}, Angle Loss: {:.4f}, Translation Loss: {:.3f}, Validation Loss: {:.3f}, Angle Loss: {:.4f}, Translation Loss: {:.3f}".format(
             epoch, train_loss, train_loss_ang, train_trans_loss, val_loss, val_loss_ang, val_trans_loss)

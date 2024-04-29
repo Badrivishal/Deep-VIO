@@ -1,3 +1,4 @@
+import torch.nn.functional
 import torchvision.models as models
 from torch import nn
 import numpy as np
@@ -73,12 +74,29 @@ class LSTMModel(nn.Module):
         x, hc2 = self.lstm2(x, hc1)
         x, hc3 = self.lstm3(x, hc2)
         return x, hc3
+    
+class ImuEncoder(nn.Module):
+    def __init__(self):
+        super(ImuEncoder, self).__init__()
+        self.linear1 = nn.Linear(6, 16)
+        self.linear2 = nn.Linear(16, 32)
+        self.linear3 = nn.Linear(32, 64)
+        self.linear4 = nn.Linear(64, 128)
+        self.linear5 = nn.Linear(128, 256)
+    
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.linear2(x)
+        x = self.linear3(x)
+        x = self.linear4(x)
+        x = self.linear5(x)
+        return x
 
 
 class LSTMSingleModel(nn.Module):
     def __init__(self):
         super(LSTMSingleModel, self).__init__()
-        self.lstm1 = nn.LSTM(256, 100, num_layers=3)
+        self.lstm1 = nn.LSTM(512, 100, num_layers=3)
 
     def forward(self, x, prev_state=None):
         x, hc1 = self.lstm1(x, prev_state)
@@ -88,7 +106,8 @@ class DeepVIO(nn.Module):
     def __init__(self):
         super(DeepVIO, self).__init__()
         self.imageModel = ImageConvModel()
-        self.linear1 = nn.Linear(46080, 250)
+        self.linear1 = nn.Linear(46080, 256)
+        self.imuEncoder = ImuEncoder()
         self.lstmModel = LSTMSingleModel()
         self.linear2 = nn.Linear(100, 7)
 
@@ -101,6 +120,7 @@ class DeepVIO(nn.Module):
         images_model_input = x_images.view(batch_size*seq_len, 2, params.img_h, params.img_w)
         x = self.imageModel(images_model_input)
         x = self.linear1(x)
+        x_imu = self.imuEncoder(x_imu)
         x = x.view(batch_size, seq_len, -1)
         # print(x.shape)
         # Reorder the dimensions to [seq_len, batch_size, 1, -1]
@@ -129,6 +149,7 @@ class DeepVIO(nn.Module):
         y = y.to(params.device)
         angle_loss = torch.nn.functional.mse_loss(angles, y[:,:,3:])
         translation_loss = torch.nn.functional.mse_loss(translation, y[:,:,:3])
+        # print("TRanslation", translation, "\ny", y[:,:,:3], "\n loss", translation_loss)
         loss = params.angular_loss_weight * angle_loss + translation_loss
         return loss, angle_loss, translation_loss
 
@@ -163,12 +184,14 @@ class DeepVIO(nn.Module):
                 f = open(params.record_path, 'a')
                 f.write(message+'\n') 
                 print(message)
+                print('avg loss', np.mean(np.array(losses['translation'])))
+                # print(losses['translation'])
                 f.close()
-                
+        print("loss", losses['translation'])
         loss_ang_mean_train /= len(data_loader)
         loss_trans_mean_train /= len(data_loader)
         loss_mean_train = loss_ang_mean_train + loss_trans_mean_train
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
 
         return loss_mean_train, loss_ang_mean_train, loss_trans_mean_train
 
@@ -188,6 +211,8 @@ class DeepVIO(nn.Module):
             losses['translation'].append(translation_loss.item())
             loss_ang_mean_val += angle_loss.item()
             loss_trans_mean_val += translation_loss.item()
+        # print("loss", losses['translation'])
+        print('avg loss', np.mean(np.array(losses['translation'])))
         loss_ang_mean_val /= len(data_loader)
         loss_trans_mean_val /= len(data_loader)
         loss_mean_val = loss_ang_mean_val + loss_trans_mean_val

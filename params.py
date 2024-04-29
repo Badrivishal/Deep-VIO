@@ -26,7 +26,7 @@ class Parameters():
         # self.valid_video = ['03', '05']
         # self.test_video = ['03', '04', '05', '06', '07', '10']
 
-        self.seq_len = 3           # Image sequence length
+        self.seq_len = 6           # Image sequence length
         self.overlap = 1           # overlap between adjacent sampled image sequences
 
         # Data Preprocessing
@@ -43,13 +43,13 @@ class Parameters():
         self.rnn_dropout_out = 0.2
         self.rnn_dropout_between = 0.2 
         self.batch_norm = True
-        self.angular_loss_weight = 0.1
+        self.angular_loss_weight = 0
 
         # Training settings
         self.epochs = 130
-        self.batch_size = 5
+        self.batch_size = 4
         self.pin_mem = True
-        self.optim_lr = 1e-4
+        self.optim_lr = 1e-2
         self.optim_decay = 5e-3
         self.optim_lr_decay_factor = 0.1
         self.optim_lr_step = 60
@@ -59,7 +59,7 @@ class Parameters():
         self.resume_t_or_v = '.latest'
         
         # Paths to save and load the model
-        self.experiment_name = 'experiment_small_local'
+        self.experiment_name = 'experiment_small_imu_encoder_local3'
         self.save_path = 'experiments/{}'.format(self.experiment_name)
 
         # self.name = 't{}_v{}_im{}x{}_s{}_b{}'.format(''.join(self.train_video), ''.join(self.test_video), self.img_h, self.img_w, self.seq_len, self.batch_size)
