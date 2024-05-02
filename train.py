@@ -5,8 +5,8 @@ from dataloader import convert_to_tensor
 import torch
 import pandas as pd
 
+def get_data_loaders(df_meta, image_folder, seq_len, batch_size):
 
-def get_data_loaders_split(df_meta, image_folder, seq_len, batch_size):
     split_idx = int(0.8 * df_meta.shape[0])
 
     df_train = df_meta.iloc[:split_idx]
@@ -21,11 +21,17 @@ def get_data_loaders_split(df_meta, image_folder, seq_len, batch_size):
                                       file_path=image_folder,
                                       seq_len=seq_len)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
-    valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+
+
+    # dataset = RandomNoiseDataset(num_samples=100, seq_len=params.seq_len)
+    # val_dataset = RandomNoiseDataset(num_samples=20, seq_len=params.seq_len)
+    #
+    # train_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    # val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
     return train_loader, valid_loader
-
 
 def get_data_loader_whole_set(df_meta, image_folder, seq_len, batch_size):
     dataset = convert_to_tensor(df=df_meta,
@@ -67,13 +73,13 @@ if __name__ == "__main__":
                                                  batch_size=batch_size)
 
 
+
     m_deepvio = DeepVIO()
     m_deepvio = m_deepvio.to(params.device)
 
-    optimizer = torch.optim.Adam(m_deepvio.parameters(), lr=params.optim_lr, betas=(0.9, 0.999),
-                                 weight_decay=params.optim_decay)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=params.optim_lr_step,
-                                                gamma=params.optim_lr_decay_factor)
+    optimizer = torch.optim.Adam(m_deepvio.parameters(), lr=params.optim_lr, betas=(0.9, 0.999), weight_decay=params.optim_decay)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=params.optim_lr_step, gamma=params.optim_lr_decay_factor)
+
 
     if params.resume:
         m_deepvio.load_state_dict(torch.load(params.load_model_path))
@@ -91,15 +97,16 @@ if __name__ == "__main__":
         train_loss, train_loss_ang, train_trans_loss = m_deepvio.train_model(train_dataloader, optimizer)
         val_loss, val_loss_ang, val_trans_loss = m_deepvio.validate_model(train_dataloader)
         scheduler.step()
+
         message = "Epoch: {}, Train Loss: {:.3f}, Angle Loss: {:.4f}, Translation Loss: {:.3f}, Validation Loss: {:.3f}, Angle Loss: {:.4f}, Translation Loss: {:.3f}".format(
             epoch, train_loss, train_loss_ang, train_trans_loss, val_loss, val_loss_ang, val_trans_loss)
         f = open(params.record_path, 'a')
         f.write(message + '\n')
         print(message)
         f.close()
-        # print('Train Loss: {:.3f}, Angle Loss: {:.4f}, Translation Loss: {:.3f}'.format(train_loss, train_loss_ang, train_loss))
-        # print("Validation Loss: {:.3f}, Angle Loss: {:.4f}, Translation Loss: {:.3f}".format(val_loss, val_loss_ang, val_loss))
 
         print("Saving model...")
-        torch.save(m_deepvio.state_dict(), params.save_model_path + "_epoch_{}".format(epoch) + ".model.pth")
-        torch.save(optimizer.state_dict(), params.save_model_path + "_epoch_{}".format(epoch) + ".optimizer.pth")
+        torch.save(m_deepvio.state_dict(), params.save_model_path + "epoch{}".format(epoch) + ".model.pth")
+        torch.save(optimizer.state_dict(), params.save_model_path + "epoch{}".format(epoch) + ".optimizer.pth")
+
+
